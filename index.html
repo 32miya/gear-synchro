@@ -1,0 +1,1201 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121518">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:border-box}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>ギア・シンクロ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,600;1,6..96,500&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* Layout: one narrow column — a clock-case panel with the canvas movement, a status bezel, then the design notes. Single deliberate dark look (watch movement under glass). */
+:root{
+  --case:#121518; --plate:#1a1e23; --plate-2:#22272d; --line:#2e343b;
+  --brass:#cfa94f; --brass-dim:#7f6634; --ink:#ece6d6; --muted:#9a968b;
+  --ruby:#c8264a; --glow:#ffe3a1;
+  --f-display:"Bodoni Moda", Didot, "Times New Roman", serif;
+  --f-body:"Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--case);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-family:var(--f-body);font-weight:700;font-size:1.55rem;letter-spacing:.06em}
+.latin{font-family:var(--f-display);font-style:italic;color:var(--brass);font-size:1rem;letter-spacing:.08em}
+.bezel{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line);border-radius:6px;background:var(--plate)}
+.bezel div{padding:8px 8px;min-width:0;display:flex;flex-direction:column;gap:2px;border-left:1px solid var(--line)}
+.bezel div:first-child{border-left:0}
+.bezel span{font-size:.68rem;color:var(--muted);letter-spacing:.12em}
+.bezel b{font-family:var(--f-mono);font-weight:500;font-size:1.15rem;font-variant-numeric:tabular-nums;color:var(--ink)}
+.dial{position:relative;border-radius:10px;border:1px solid var(--line);background:var(--plate);overflow:hidden;
+  box-shadow:inset 0 0 0 4px var(--case), inset 0 0 0 5px var(--brass-dim)}
+canvas{display:block;width:100%;aspect-ratio:1/1.08;max-width:100%;touch-action:none;cursor:grab}
+canvas.dragging{cursor:grabbing}
+.chain{position:absolute;left:0;right:0;top:42%;text-align:center;pointer-events:none;font-family:var(--f-display);
+  font-style:italic;font-size:3rem;color:var(--glow);text-shadow:0 0 18px rgba(255,200,90,.6);opacity:0}
+.chain.show{animation:pop .9s ease-out}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}15%{opacity:1;transform:scale(1.12)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
+.clear{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  background:rgba(14,16,19,.78);text-align:center;padding:20px}
+.clear h2{margin:0;font-family:var(--f-display);font-weight:600;font-size:2.2rem;letter-spacing:.1em;color:var(--brass)}
+.clear p{margin:0;color:var(--ink)}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:.9rem;color:var(--ink);background:var(--plate-2);border:1px solid var(--line);border-radius:6px;padding:9px 14px;cursor:pointer}
+button:hover{border-color:var(--brass-dim)}
+button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+button.primary{background:var(--brass);color:#1a1408;border-color:var(--brass);font-weight:700}
+button:disabled{opacity:.45;cursor:default}
+.howto{margin:0;color:var(--muted);font-size:.86rem}
+.notes{margin-top:22px;display:flex;flex-direction:column;gap:18px;border-top:1px solid var(--line);padding-top:22px}
+.notes h2{margin:0;font-size:1.15rem;font-weight:700;text-wrap:balance}
+.notes h3{margin:0 0 4px;font-size:.98rem;font-weight:700;color:var(--brass)}
+.notes p,.notes li{max-width:65ch;margin:0}
+.notes ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.cls{border:1px solid var(--line);border-radius:6px;background:var(--plate);padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+code,pre{font-family:var(--f-mono);font-size:.8rem}
+code{color:var(--glow)}
+pre{margin:0;background:var(--plate);border:1px solid var(--line);border-radius:6px;padding:12px 14px;overflow-x:auto;line-height:1.6;color:var(--ink)}
+.formula{font-family:var(--f-mono);background:var(--plate-2);border-radius:6px;padding:10px 12px;font-size:.85rem;overflow-x:auto}
+@media (prefers-reduced-motion:reduce){.chain.show{animation-duration:.01s}}
+.depth{display:flex;flex-direction:row;gap:5px;align-items:center;padding:2px 0 0 1px;border-left:0!important}
+.bezel .depth{flex-direction:row;padding:3px 0 0 2px;border-left:0;gap:6px}
+.depth i{width:7px!important;height:7px!important}
+.depth i{display:block;width:9px;height:9px;transform:rotate(45deg);border:1px solid var(--brass-dim);background:transparent}
+.depth i.done{background:var(--line);border-color:var(--line)}
+.depth i.now{background:var(--glow);border-color:var(--glow);box-shadow:0 0 8px rgba(255,215,120,.7)}
+.depth small{display:none;font-family:var(--f-mono);font-size:.62rem;color:var(--muted);letter-spacing:.1em;margin-bottom:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;display:inline-block;transform:rotate(45deg)}
+.tip{display:flex;flex-direction:column;gap:2px;border:1px solid var(--brass-dim);border-radius:6px;background:var(--plate);padding:10px 12px;font-size:.86rem;line-height:1.6}
+.tip b{font-family:var(--f-mono);font-weight:500;font-size:.7rem;letter-spacing:.14em;color:var(--brass)}
+.score{display:flex;align-items:baseline;gap:8px;font-family:var(--f-mono)}
+.score span{font-size:.68rem;letter-spacing:.14em;color:var(--muted)}
+.score > b{font-family:var(--f-display);font-weight:600;font-size:1.7rem;color:var(--brass);font-variant-numeric:tabular-nums;line-height:1}
+.score em{font-style:normal;font-size:.72rem;color:var(--muted)}
+.score em b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+.breakdown{display:grid;grid-template-columns:auto auto;gap:2px 18px;font-family:var(--f-mono);font-size:.85rem;font-variant-numeric:tabular-nums;text-align:left}
+.breakdown span:nth-child(even){text-align:right}
+.breakdown .tot{color:var(--brass);font-weight:500;border-top:1px solid var(--line);padding-top:4px}
+.page{display:flex;flex-direction:column;gap:12px}
+header h1{font-size:1.25rem}
+.nav{display:flex;gap:6px}
+.nav button{padding:6px 10px;font-size:.8rem}
+.sub{gap:14px}
+.sub h2{margin:6px 0 0;font-size:1.15rem;font-weight:700}
+.sub ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+.sub li,.sub p{max-width:65ch}
+.subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--case);padding-block:8px;z-index:5}
+.notes{margin-top:0;border-top:0;padding-top:0}
+[hidden]{display:none!important}
+button.snd{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+button.snd.muted{color:var(--muted)}
+.tlinks button.tsnd{text-decoration:none}
+button.on{border-color:var(--brass);color:var(--glow)}
+/* ---- title ---- */
+.title{min-height:calc(100dvh - 60px);justify-content:center;align-items:center;text-align:center;gap:18px}
+.tstage{position:relative;width:100%;max-width:440px;aspect-ratio:1/0.82;border-radius:50% 50% 14px 14px / 46% 46% 14px 14px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 40%,#2a3037,#14171b 72%);box-shadow:inset 0 0 0 3px var(--case),inset 0 0 0 4px var(--brass-dim),0 30px 60px -30px rgba(0,0,0,.8)}
+#tcv{display:block;width:100%;height:100%}
+.logo{display:flex;flex-direction:column;align-items:center;gap:4px}
+.kicker{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.32em;color:var(--brass)}
+.mark{margin:0;font-family:var(--f-body);font-weight:700;font-size:clamp(2.1rem,9vw,2.9rem);letter-spacing:.12em;line-height:1.15;
+  background:linear-gradient(180deg,#fff1c7 0%,#e2bd62 45%,#94712c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.6))}
+.latin2{font-family:var(--f-display);font-style:italic;font-size:1.05rem;letter-spacing:.2em;color:var(--muted)}
+.tag{margin:6px 0 0;color:var(--ink);font-size:.95rem}
+.tbtns{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:300px}
+button.big{width:100%;padding:14px 18px;font-size:1.05rem;letter-spacing:.08em;border-radius:999px}
+button.primary.big{background:linear-gradient(180deg,#f0d27c,#b48a33);border-color:#f0d27c;box-shadow:0 8px 24px -8px rgba(207,169,79,.6);animation:breathe 2.6s ease-in-out infinite}
+button.ghost{background:transparent;border-color:var(--brass-dim)}
+button.ghost b{font-family:var(--f-mono);color:var(--brass);font-weight:500}
+.tlinks{display:flex;gap:8px}
+.tlinks button{background:transparent;border-color:transparent;color:var(--muted);font-size:.85rem;text-decoration:underline;text-underline-offset:3px}
+.tbest{margin:0;font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.14em}
+.tbest b{color:var(--ink);font-weight:500}
+@keyframes breathe{50%{box-shadow:0 8px 34px -4px rgba(255,215,120,.75)}}
+/* ---- play ---- */
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.bar .score{margin-left:auto}
+button.icon{width:38px;height:38px;padding:0;border-radius:50%;font-size:1.1rem;line-height:1;flex:none}
+.stagebox{display:flex;flex-direction:column;line-height:1.1;padding-left:4px}
+.stagebox span{font-family:var(--f-mono);font-size:.6rem;letter-spacing:.18em;color:var(--muted)}
+.stagebox b{font-family:var(--f-display);font-size:1.5rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.bezel{grid-template-columns:repeat(4,1fr)!important}
+.controls{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+button.tool{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:12px;min-width:0}
+button.tool i{font-style:normal;font-size:1.25rem;line-height:1.2;font-family:var(--f-mono);font-weight:500}
+button.tool span{font-size:.68rem;color:var(--muted);letter-spacing:.04em;white-space:nowrap}
+button.tool.primary span{color:#3a2c0c}
+button.tool.on i{color:var(--glow)}
+.dial{border-radius:22px}
+.glass{position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(118deg,transparent 22%,rgba(255,250,235,.07) 34%,transparent 46%),radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.45) 100%);
+  background-size:260% 100%,100% 100%;background-position:100% 0,0 0}
+.glass.sweep{animation:sweep 1.4s ease-out}
+@keyframes sweep{from{background-position:100% 0,0 0}to{background-position:-60% 0,0 0}}
+@media (prefers-reduced-motion:reduce){button.primary.big,.glass.sweep{animation:none}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+ <section id="pageTitle" class="page title">
+  <div class="tstage"><canvas id="tcv" aria-hidden="true"></canvas><div class="glass"></div></div>
+  <div class="logo">
+    <span class="kicker">CLOCKWORK PUZZLE</span>
+    <h1 class="mark">ギア・シンクロ</h1>
+    <span class="latin2">Gear · Synchro</span>
+    <p class="tag">▲と▲を向き合わせて、歯車を外せ。</p>
+  </div>
+  <div class="tbtns">
+    <button class="primary big" id="btnStart">はじめから</button>
+    <button class="big ghost" id="btnContinue" hidden>つづきから <b id="contStage"></b></button>
+    <div class="tlinks"><button class="snd tsnd" id="btnSoundT" data-label="1"></button><button id="goHowto">遊び方</button><button id="goNotes">設計メモ</button></div>
+    <p class="tbest">BEST <b id="tBest">0</b></p>
+  </div>
+ </section>
+
+ <div id="pagePlay" class="page" hidden>
+  <header class="bar">
+    <button class="icon" id="goTitle" aria-label="タイトルへ戻る">≡</button>
+    <button class="icon" id="goHowto2" aria-label="遊び方">?</button>
+    <button class="icon snd" id="btnSound"></button>
+    <div class="stagebox"><span>STAGE</span><b id="vStage">1</b></div>
+    <div class="score"><span>SCORE</span><b id="vScore">0</b><em>BEST <b id="vBest">0</b></em></div>
+  </header>
+
+  <div class="bezel" aria-live="polite">
+    <div><span>層</span><b id="vLayer">1/1</b><div class="depth" id="depth"></div></div>
+    <div><span>手数</span><b id="vMoves">0</b></div>
+    <div><span>目安</span><b id="vPar">0</b></div>
+    <div><span>最大連鎖</span><b id="vChain">0</b></div>
+  </div>
+
+  <div class="tip" id="tip" hidden><b id="tipHead"></b><span id="tipText"></span></div>
+
+  <div class="dial">
+    <canvas id="cv" aria-label="歯車の盤面"></canvas>
+    <div class="glass" id="glass"></div>
+    <div class="chain" id="chain"></div>
+    <div class="clear" id="clear" hidden>
+      <h2>CLEAR</h2>
+      <p id="clearText"></p>
+      <div class="breakdown" id="breakdown"></div>
+      <button class="primary" id="btnNext2">次のステージ</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="tool" id="btnUndo"><i>↶</i><span>戻す</span></button>
+    <button class="tool" id="btnReset"><i>⟲</i><span>最初から</span></button>
+    <button class="tool" id="btnNum" aria-pressed="false"><i>12</i><span>数字</span></button>
+    <button class="tool" id="btnSolve"><i>◉</i><span>解答</span></button>
+    <button class="tool primary" id="btnNext"><i>▶</i><span>次へ</span></button>
+  </div>
+ </div>
+ </div>
+
+ <section id="pageHowto" class="page sub" hidden>
+  <div class="subhead"><button class="back">← 戻る</button><span class="eyebrow">How to play</span></div>
+  <h2>遊び方</h2>
+  <ul>
+    <li>歯車をつかんで円を描くようにドラッグすると、1歯ずつカチッと回ります。</li>
+    <li>回した歯車の隣は、逆向きに同じ歯数だけ連動します。</li>
+    <li>噛み合った2枚の▲が向き合った状態で指を離すと、2枚とも外れます。</li>
+    <li>外れたときの衝撃で、隣の歯車が1歯回ります。これで別のペアが向き合うと連鎖します。</li>
+    <li>相手がいなくなった歯車は、▲を真上の目盛りに合わせると外れます。</li>
+    <li>手前の層を全部外すと、奥の層が操作できるようになります。</li>
+    <li>銀の輪がある歯車は奥の歯車と同じ軸です。回すと奥も同じ角度だけ回り、輪の中の小さな▲が奥の歯車の向きを示します。「×2」は奥が倍の歯数の組み合わせです。</li>
+  </ul>
+  <h2>ラチェット歯車</h2>
+  <ul>
+    <li>「±3」のような札が付いた歯車は、1カチで札の歯数ずつしか回せません（ステージ6から登場）。</li>
+    <li>止まれる位置は、歯数と刻みの最大公約数で決まります。8歯を3歯刻みで回すと全8か所に止まれますが、12歯を3歯刻みで回すと4か所だけです。</li>
+    <li>直接回しても届かない向きは、隣の歯車を回して合わせます（隣から回されるときは1歯単位で動きます）。</li>
+  </ul>
+  <h2>数字モード</h2>
+  <ul>
+    <li>「数字 ON」にすると、歯車の中央に「相手を向くまで、時計回りにあと何歯か」が表示されます。噛み合う相手が複数ある歯車は、中央の周りに相手の方向を指す小さな数字が並びます。札には歯数も出ます。</li>
+    <li>歯車を時計回りに k 歯回すと、その歯車の数字はすべて k 減り、隣の歯車の数字は k 増えます（どちらも歯数で割った余り）。</li>
+    <li>噛み合った2つの数字が両方 0 になれば、そのペアが向き合っています。相手のいない歯車は、中央の数字が 0 で12時です。</li>
+    <li>例：12歯の歯車の数字が 5 のとき、隣を3歯回すと 8 になります。16歯の数字 14 は、2歯戻すのと同じです。</li>
+  </ul>
+  <div class="legend">
+    <span><i class="sw" style="background:#ffe3a1"></i>向き合っている</span>
+    <span><i class="sw" style="background:#cfa94f"></i>片方だけ向いている</span>
+    <span><i class="sw" style="background:#9fb4c0;border-radius:50%;transform:none"></i>奥と同軸</span>
+  </div>
+  <h2>ステージの進み方</h2>
+  <ul>
+      <li><b>チュートリアル</b>：ステージ1は歯車2個・1手（▲を向き合わせる）、ステージ2は3個（逆回転の連動・衝撃・孤立ギア）、ステージ3は2層×2個（同軸と層の切り替え）。回す量も1〜2歯に抑えています。</li>
+      <li><b>難易度</b>：ステージ4から通常生成。3ステージごとに層が1つ増え（ステージ7で2層）、ステージ16で5層。手前の層は最大9個、奥ほど1個ずつ少なくなります。</li>
+  </ul>
+    <h2>点数の計算</h2>
+    <ul>
+      <li><b>外した歯車</b>：1個 100点 × 連鎖段数（2連鎖目に外れた歯車は1個200点、3連鎖目は300点）</li>
+      <li><b>層クリア</b>：500点 × 層の深さ（2層目なら1,000点）</li>
+      <li><b>ステージクリア</b>：1,000点。目安手数以内ならさらに +1,000点</li>
+      <li><b>手数ボーナス</b>：(目安 × 2 − 手数) × 150点。目安の2倍を超えると0点</li>
+      <li>1手戻す・やり直すと点数も巻き戻ります。解答の再生は加点しません。ベストスコアはこの端末に保存されます。</li>
+    </ul>
+ </section>
+
+ <section id="pageNotes" class="page sub" hidden>
+  <div class="subhead"><button class="back">← 戻る</button><span class="eyebrow">Design notes</span></div>
+  <div class="notes">
+    <h2>1. クラス構造・データ設計</h2>
+    <div class="cls">
+      <h3>Gear（歯車データ）</h3>
+      <ul>
+        <li><code>id, layer(0〜4), teeth(8/12/16), x, y</code> 配置と歯数。ピッチ半径 = モジュール × 歯数 / 2</li>
+        <li><code>count:int</code> 噛み合い点を通過した歯の累計（時計回りが正）。唯一の回転状態</li>
+        <li><code>axle, ratio</code> 同じ軸でつながった1つ奥の歯車と、その歯数倍率（1 または 2）</li>
+        <li><code>pos = count mod teeth</code>／<code>alive</code>／<code>phase</code>（歯形の描画オフセット）</li>
+      </ul>
+    </div>
+    <div class="cls">
+      <h3>GearNetwork（接続・連動管理）</h3>
+      <ul>
+        <li><code>adj[]</code> 同じ層の中だけの噛み合い隣接リスト（各層は木の集まり）</li>
+        <li><code>turn(id, d)</code> 歯車を d 歯回し、同軸の奥へ <code>d × ratio</code> 歯を伝える（さらに奥へも伝わる）</li>
+        <li><code>rotate(id, k)</code> 対象 +k 歯、同じ層の生存隣接に −k 歯。どちらも turn 経由なので同軸に伝わる</li>
+        <li><code>activeLayer()</code> 生存ギアがある最も手前の層。操作と判定はこの層だけ</li>
+        <li><code>target(a,b)</code>／<code>findMatches(layer)</code>／<code>remove</code>／<code>shock</code>／<code>resolveAll</code></li>
+      </ul>
+    </div>
+    <div class="cls">
+      <h3>StageGenerator（逆算生成）</h3>
+      <ul>
+        <li><code>layoutStage(sizes)</code> 層ごとに配置。奥の層は手前の歯車と同じ座標に「軸」を1〜2本立て、そこから木を伸ばす</li>
+        <li><code>generate(sizes, steps)</code> 手前の層から順に逆算し、最後に全層通しで検証</li>
+      </ul>
+    </div>
+
+    <h2>整数管理と同軸の倍率</h2>
+    <div class="formula">噛み合い: Δθ_B = −Δθ_A × N_A / N_B → Δt_B = −Δt_A<br>同軸　　: Δθ_奥 = Δθ_手前 → Δt_奥 = Δt_手前 × N_奥 / N_手前</div>
+    <p>1回転を48単位（8・12・16の最小公倍数）とすると、1歯は 6・4・3 単位です。同軸で奥の歯車が歯の途中で止まらないよう、組み合わせを 8→8、8→16、12→12、16→16 に限定しています。倍率は必ず 1 か 2 になり、全歯車の状態を歯数の整数のまま持てます。</p>
+
+    <h2>2. 逆算生成アルゴリズム（多層版）</h2>
+<pre>generate(sizes[], steps[]):
+  repeat:
+    layoutStage(sizes)                  // 層ごとに木/森、同軸リンク、接触角は歯ピッチの公倍数
+    C ← 各層の木を最大マッチングし、ペアが向き合う count（余りは −1）
+    acc ← 0                            // 手前の層の操作で奥へ伝わった回転の累計
+    for L in 0..層数-1:
+      moves_L ← 層Lのギアを steps[L] 個、各 ±(1..5) 歯
+      act_L ← C_L − (moves_L が層L自身に与える線形効果)   // 層Lが現れた瞬間の状態
+      層Lだけを act_L から本番ルールで再生（奥は0から開始して伝達量を計測）
+        - 現れた瞬間に一致があれば却下
+        - 層Lが全消しになる手順 order_L を探す（逆順＋シャッフル）
+      start_L ← act_L − acc_L           // 手前の操作で奥が回る分を先に差し引く
+      acc += 計測した奥への伝達量
+    solution ← order_0 + order_1 + …
+    全層を start から本番ルールで通し再生し、全消しなら採用</pre>
+    <p>奥の層は手前を操作するたびに回されるので、最初の盤面ではわざとずれた向きで置かれています。手前を正しく解くと、奥は「現れた瞬間に解ける状態」に近づく仕組みです。</p>
+
+    <h2>ルール上の決めごと</h2>
+    <ul>
+      <li><b>連動は隣接1段まで。</b>同軸だけは軸を通して奥へ伝わります。</li>
+      <li><b>判定は指を離した時。</b>ドラッグ中は向き合ったペアが光るだけです。</li>
+      <li><b>衝撃は同じ層の隣接生存ギアに +1 歯。</b>同軸を通して奥にも伝わります。</li>
+      <li><b>孤立ギア</b>は12時に合わせると単独で外れます。</li>
+      <li><b>ラチェット</b>：<code>Gear.step</code>（2〜4）。プレイヤー操作は step 歯単位、噛み合い・同軸・衝撃で回されるときは1歯単位。生成時は step を持つギアの逆回しを step の倍数に限定するので、解は必ず存在します。</li>
+      <li><b>数字モード</b>：表示値は <code>(target(a,b) − count) mod N</code>。内部の整数状態をそのまま見せているだけなので、計算で解いた答えと盤面が必ず一致します。</li>
+    </ul>
+    <h2>Unity 移植メモ</h2>
+    <p>層は Z 方向に並べ、奥の層ほどスケールと明るさを下げます。<code>transform.localRotation = Quaternion.Euler(0, 0, -visCount * 360f / teeth)</code> で、<code>visCount</code> を <code>count</code> にバネ補間すれば同じラチェット感になります。</p>
+  </div>
+ </section>
+</div>
+
+<script>
+const TAU=Math.PI*2, MODULE=6, SIZES=[8,12,16], SHOCK_TEETH=1;
+const COAX={8:[8,16],12:[12],16:[16]};
+const mod=(a,n)=>((a%n)+n)%n;
+function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- Gear ---------- */
+class Gear {
+  constructor(id,layer,teeth,x,y){
+    this.id=id; this.layer=layer; this.teeth=teeth; this.x=x; this.y=y;
+    this.count=0; this.alive=true; this.phase=0; this.step=1; this.axle=-1; this.ratio=1; this.driver=-1;
+    this.vis=0; this.vel=0; this.offset=0; this.lockT=0; this.dieT=0; this.path=null;
+  }
+  get r(){ return MODULE*this.teeth/2 }
+  get outer(){ return this.r+MODULE }
+  get pitch(){ return TAU/this.teeth }
+  get pos(){ return mod(this.count,this.teeth) }
+  get aligned(){ return this.pos===0 }
+}
+
+/* ---------- GearNetwork ---------- */
+class GearNetwork {
+  constructor(gears,edges){
+    this.gears=gears; this.edges=edges;
+    this.adj=gears.map(()=>[]);
+    for(const [a,b] of edges){ this.adj[a].push(b); this.adj[b].push(a) }
+    this.tgt=new Map();
+    for(const [a,b] of edges){
+      const A=gears[a], B=gears[b], phi=Math.atan2(B.y-A.y,B.x-A.x);
+      this.tgt.set(a+'>'+b, mod(Math.round((phi+Math.PI/2)/A.pitch),A.teeth));
+      this.tgt.set(b+'>'+a, mod(Math.round((phi+Math.PI*1.5)/B.pitch),B.teeth));
+    }
+    this.depth=Math.max(...gears.map(g=>g.layer))+1;
+  }
+  target(a,b){ return this.tgt.get(a+'>'+b) }
+  facing(a,b){ return this.gears[a].pos===this.target(a,b) }
+  neighbors(id){ return this.adj[id].filter(n=>this.gears[n].alive) }
+  activeLayer(){ let m=-1; for(const g of this.gears) if(g.alive&&(m<0||g.layer<m)) m=g.layer; return m }
+  turn(id,d){
+    const g=this.gears[id]; if(!g.alive) return;
+    g.count+=d;
+    if(g.axle>=0) this.turn(g.axle,d*g.ratio);
+  }
+  rotate(id,k){
+    const g=this.gears[id]; if(!g.alive) return;
+    const ns=this.neighbors(id);
+    this.turn(id,k);
+    for(const n of ns) this.turn(n,-k);
+  }
+  findMatches(layer=this.activeLayer()){
+    const out=new Set();
+    for(const g of this.gears){
+      if(!g.alive||g.layer!==layer) continue;
+      const ns=this.neighbors(g.id);
+      if(ns.length===0){ if(g.aligned) out.add(g.id); continue }
+      for(const n of ns) if(this.facing(g.id,n)&&this.facing(n,g.id)){ out.add(g.id); out.add(n) }
+    }
+    return [...out];
+  }
+  remove(ids){
+    for(const id of ids) this.gears[id].alive=false;
+    const hit=new Set();
+    for(const id of ids) for(const n of this.neighbors(id)) hit.add(n);
+    return [...hit];
+  }
+  shock(ids){ for(const id of ids) this.turn(id,SHOCK_TEETH) }
+  resolveAll(layer){
+    let chain=0;
+    for(;;){
+      const L=layer===undefined?this.activeLayer():layer;
+      const m=this.findMatches(L); if(!m.length) break;
+      chain++; this.shock(this.remove(m));
+    }
+    return chain;
+  }
+  layerCleared(L){ return this.gears.every(g=>g.layer!==L||!g.alive) }
+  cleared(){ return this.gears.every(g=>!g.alive) }
+  snapshot(){ return this.gears.map(g=>[g.count,g.alive]) }
+  restore(s){ s.forEach(([c,a],i)=>{ this.gears[i].count=c; this.gears[i].alive=a }) }
+}
+
+/* ---------- StageGenerator ---------- */
+class StageGenerator {
+  constructor(seed){ this.rand=mulberry32(seed) }
+  pick(a){ return a[Math.floor(this.rand()*a.length)] }
+  shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(this.rand()*(i+1));[b[i],b[j]]=[b[j],b[i]]} return b }
+  fits(all,W,H){
+    const w=Math.max(...all.map(o=>o.x+o.outer))-Math.min(...all.map(o=>o.x-o.outer));
+    const h=Math.max(...all.map(o=>o.y+o.outer))-Math.min(...all.map(o=>o.y-o.outer-14));
+    return w<=W&&h<=H;
+  }
+  layoutLayer(gears,edges,L,n){
+    const W=360,H=390, mine=[], roots=[];
+    const clash=(g,skip)=>mine.some(o=>o!==skip&&Math.hypot(o.x-g.x,o.y-g.y)<o.outer+g.outer+MODULE*1.5);
+    if(L===0){ const g=new Gear(gears.length,0,this.pick(SIZES),0,0); gears.push(g); mine.push(g); roots.push(g) }
+    else{
+      const want=n>=6&&this.rand()<0.6?2:1;
+      for(const F of this.shuffle(gears.filter(g=>g.layer===L-1))){
+        if(roots.length>=want) break;
+        const g=new Gear(gears.length,L,this.pick(COAX[F.teeth]),F.x,F.y);
+        if(clash(g,null)) continue;
+        F.axle=g.id; F.ratio=g.teeth/F.teeth; g.driver=F.id;
+        gears.push(g); mine.push(g); roots.push(g);
+      }
+    }
+    if(n<roots.length*2) return false;
+    for(let i=mine.length;i<n;i++){
+      let placed=false;
+      const forced=i-roots.length<roots.length?roots[i-roots.length]:null;
+      for(let t=0;t<400&&!placed;t++){
+        const p=forced||this.pick(mine), g=new Gear(gears.length,L,this.pick(SIZES),0,0);
+        const hd=Math.floor(this.rand()*96)*15;
+        if(hd%(720/p.teeth)||hd%(720/g.teeth)) continue;
+        const ang=hd/720*TAU, d=p.r+g.r;
+        g.x=p.x+Math.cos(ang)*d; g.y=p.y+Math.sin(ang)*d;
+        if(clash(g,p)||!this.fits([...gears,g],W,H)) continue;
+        gears.push(g); mine.push(g); edges.push([p.id,g.id]); placed=true;
+      }
+      if(!placed) return false;
+    }
+    return true;
+  }
+  layoutStage(sizes){
+    for(let a=0;a<150;a++){
+      const gears=[], edges=[]; let ok=true;
+      for(let L=0;L<sizes.length&&ok;L++) ok=this.layoutLayer(gears,edges,L,sizes[L]);
+      if(ok) return {gears,edges};
+    }
+    return null;
+  }
+  assignPhases(gears,edges){
+    for(const [a,b] of edges){
+      const A=gears[a], B=gears[b], phi=Math.atan2(B.y-A.y,B.x-A.x);
+      const delta=mod(phi-A.phase,A.pitch)/A.pitch;
+      B.phase=phi+Math.PI+(delta+0.5)*B.pitch;
+    }
+  }
+  generate(sizes,steps,kMax=5,ratchetP=0,ratchetMin=0){
+    for(let tries=0;tries<120;tries++){
+      const Lo=this.layoutStage(sizes); if(!Lo) continue;
+      this.assignPhases(Lo.gears,Lo.edges);
+      const net=new GearNetwork(Lo.gears,Lo.edges), G=net.gears, n=G.length, D=sizes.length;
+      // ラチェット歯車: 1ノッチで step 歯ずつしか回せない
+      if(ratchetP>0){
+        G.forEach(g=>{ if(this.rand()<ratchetP) g.step=this.pick([2,3,4]) });
+        if(ratchetMin&&!G.some(g=>g.step>1)) this.pick(G.filter(g=>g.layer===0)).step=this.pick([2,3,4]);
+      }
+      // クリア状態: 各層の木を最大マッチング → ペアが向き合う。余りは衝撃で12時に来る -1
+      const parent=[], used=[], C=new Array(n).fill(-1);
+      for(const [a,b] of Lo.edges) parent[b]=a;
+      for(let i=n-1;i>=0;i--){ const q=parent[i]; if(q===undefined||used[i]||used[q]) continue;
+        used[i]=used[q]=true; C[i]=net.target(i,q); C[q]=net.target(q,i) }
+      const acc=new Array(n).fill(0), start=new Array(n).fill(0), solution=[]; let ok=true;
+      for(let L=0;L<D&&ok;L++){
+        const ids=G.filter(g=>g.layer===L).map(g=>g.id);
+        const moves=this.shuffle(ids).slice(0,steps[L]).map(id=>{ const st=G[id].step, sg=this.rand()<.5?-1:1;
+          return {id,k:st>1?st*(1+Math.floor(this.rand()*2))*sg:(1+Math.floor(this.rand()*kMax))*sg} });
+        const lin=new Array(n).fill(0);
+        for(const m of moves){ lin[m.id]+=m.k; for(const nb of net.adj[m.id]) lin[nb]-=m.k }
+        let found=null;
+        for(let t=0;t<24&&!found;t++){
+          const order=t===0?[...moves]:this.shuffle(moves);
+          G.forEach(g=>{ g.alive=g.layer>=L; g.count=g.layer===L?C[g.id]-lin[g.id]:0 });
+          if(net.findMatches(L).length) break;
+          let good=true;
+          for(const m of order){ if(!G[m.id].alive){ good=false; break } net.rotate(m.id,m.k); net.resolveAll(L) }
+          if(good&&net.layerCleared(L)) found={order,deltas:G.map(g=>g.layer>L?g.count:0)};
+        }
+        if(!found){ ok=false; break }
+        for(const id of ids) start[id]=C[id]-lin[id]-acc[id];
+        found.deltas.forEach((d,i)=>acc[i]+=d);
+        solution.push(...found.order);
+      }
+      if(!ok) continue;
+      G.forEach((g,i)=>{ g.alive=true; g.count=start[i] });
+      const snap=net.snapshot();
+      if(this.replay(net,solution)){ net.restore(snap); return {net,start:snap,solution,par:solution.length} }
+    }
+    return null;
+  }
+  replay(net,solution){
+    if(net.findMatches().length) return false;
+    for(const m of solution){
+      const g=net.gears[m.id];
+      if(!g.alive||net.activeLayer()!==g.layer) return false;
+      net.rotate(m.id,m.k); net.resolveAll();
+    }
+    return net.cleared();
+  }
+}
+const TUTORIAL=[
+  {sizes:[2],steps:[1],kMax:2,head:'チュートリアル 1/3',tip:'光っている歯車をつかみ、円を描くように回してください。2つの▲が向き合うと間の◆が金色に光ります。その状態で指を離すと外れます。'},
+  {sizes:[3],steps:[1],kMax:2,head:'チュートリアル 2/3',tip:'回すと隣の歯車は逆向きに回ります。ペアが外れると衝撃で隣が1歯回り、相手がいなくなった歯車は▲が真上の目盛りを向くと外れます。'},
+  {sizes:[2,2],steps:[1,1],kMax:2,head:'チュートリアル 3/3',tip:'銀の輪がある歯車は、奥の歯車と同じ軸です。手前を回すと奥も回ります（輪の中の小さな▲が奥の向き）。手前の層を全部外すと奥の層に進みます。'}
+];
+function stageParams(s){
+  if(s<=TUTORIAL.length) return TUTORIAL[s-1];
+  s-=TUTORIAL.length;
+  const depth=Math.min(5,1+Math.floor((s-1)/3));
+  const base=Math.min(9,4+Math.floor((s-1)/2));
+  const sizes=[], steps=[];
+  for(let L=0;L<depth;L++){ const n=Math.max(4,base-L); sizes.push(n); steps.push(Math.min(n,5,2+Math.floor((s-1)/4))) }
+  const P={sizes,steps,ratchetP:s>=3?0.25:0,ratchetMin:s===3?1:0};
+  if(s===3){ P.head='新しい歯車'; P.tip='数字の付いた札（例「±3」）がある歯車はラチェット歯車です。1カチで札の歯数ずつしか回せません。12歯を3歯刻みで回すと4か所にしか止まれないので、隣の歯車を回して合わせる必要があります。' }
+  return P;
+}
+
+/* ---------- Audio / haptics ---------- */
+let ac=null, noiseBuf=null, master=null, soundOn=true;
+try{ soundOn=localStorage.getItem('gearSynchroSound')!=='0' }catch(e){}
+const OUT=a=>master||a.destination;
+// BGM: 秒針のチク・タク（端末の時刻の秒に同期。文字盤の秒針と同じタイミング）
+let lastSec=-1, tickAlt=false;
+function tickTock(){
+  const a=ac; if(!a||!soundOn||a.state!=='running') return;
+  const t=a.currentTime; tickAlt=!tickAlt;
+  const src=a.createBufferSource(); src.buffer=noiseBuf;
+  const hp=a.createBiquadFilter(); hp.type='bandpass'; hp.frequency.value=tickAlt?4600:3500; hp.Q.value=9;
+  const g=a.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.002); g.gain.exponentialRampToValueAtTime(0.0001,t+0.035);
+  src.connect(hp).connect(g).connect(OUT(a)); src.start(t);
+  const o=a.createOscillator(), og=a.createGain(); o.type='sine'; o.frequency.value=tickAlt?1900:1500;
+  og.gain.setValueAtTime(0.0001,t); og.gain.exponentialRampToValueAtTime(0.025,t+0.003); og.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
+  o.connect(og).connect(OUT(a)); o.start(t); o.stop(t+0.07);
+}
+setInterval(()=>{ const sec=new Date().getSeconds(); if(sec!==lastSec){ lastSec=sec; if(typeof curPage!=='undefined'&&(curPage==='pageTitle'||(curPage==='pagePlay'&&document.getElementById('clear').hidden))&&!document.hidden) tickTock() } },40);
+const SPK_ON='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const SPK_OFF='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+function syncSound(){
+  document.querySelectorAll('.snd').forEach(b=>{ b.innerHTML=(soundOn?SPK_ON:SPK_OFF)+(b.dataset.label?'<span>'+(soundOn?'音 ON':'音 OFF')+'</span>':'');
+    b.setAttribute('aria-pressed',soundOn); b.setAttribute('aria-label',soundOn?'音をオフにする':'音をオンにする'); b.classList.toggle('muted',!soundOn) });
+  if(master&&ac) master.gain.setTargetAtTime(soundOn?1:0,ac.currentTime,0.02);
+}
+function toggleSound(){ soundOn=!soundOn; try{ localStorage.setItem('gearSynchroSound',soundOn?'1':'0') }catch(e){} audio(); syncSound() }
+function audio(){
+  if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)();
+    noiseBuf=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);
+    const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
+  }catch(e){ ac=null } }
+  if(ac&&!master){ master=ac.createGain(); master.gain.value=soundOn?1:0; master.connect(ac.destination) }
+  if(ac&&ac.state==='suspended') ac.resume();
+  return ac;
+}
+function click(teeth=12){
+  const a=audio(); if(!a) return; const t=a.currentTime;
+  const src=a.createBufferSource(); src.buffer=noiseBuf;
+  const bp=a.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=5200-teeth*150; bp.Q.value=5;
+  const g=a.createGain(); g.gain.setValueAtTime(0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.04);
+  src.connect(bp).connect(g).connect(OUT(a)); src.start(t);
+  const o=a.createOscillator(), og=a.createGain(); o.type='triangle'; o.frequency.setValueAtTime(260-teeth*6,t); o.frequency.exponentialRampToValueAtTime(70,t+0.05);
+  og.gain.setValueAtTime(0.18,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+  o.connect(og).connect(OUT(a)); o.start(t); o.stop(t+0.07);
+  buzz(5);
+}
+function chime(chain){
+  const a=audio(); if(!a) return; const t=a.currentTime, SC=[0,4,7,12,16,19,24,28,31,36], base=523*Math.pow(2,SC[Math.min(chain-1,SC.length-1)]/12);
+  [1,1.5,2.01].forEach((m,i)=>{ const o=a.createOscillator(), g=a.createGain(); o.type=i?'sine':'triangle'; o.frequency.value=base*m;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16/(i+1),t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.8);
+    o.connect(g).connect(OUT(a)); o.start(t); o.stop(t+0.85) });
+  buzz([12,30,18]);
+}
+function descend(){
+  const a=audio(); if(!a) return; const t=a.currentTime;
+  [392,294,220].forEach((f,i)=>{ const o=a.createOscillator(), g=a.createGain(); o.type='triangle'; o.frequency.value=f;
+    const s=t+i*0.09; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.14,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.5);
+    o.connect(g).connect(OUT(a)); o.start(s); o.stop(s+0.55) });
+  buzz([20,40,20]);
+}
+function gachi(){
+  const a=audio(); if(!a) return; const t=a.currentTime;
+  const src=a.createBufferSource(); src.buffer=noiseBuf;
+  const bp=a.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1700; bp.Q.value=2.5;
+  const g=a.createGain(); g.gain.setValueAtTime(0.9,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.07);
+  src.connect(bp).connect(g).connect(OUT(a)); src.start(t);
+  const o=a.createOscillator(), og=a.createGain(); o.type='square'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(48,t+0.09);
+  og.gain.setValueAtTime(0.22,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.11); o.connect(og).connect(OUT(a)); o.start(t); o.stop(t+0.12);
+  const pg=a.createOscillator(), pgg=a.createGain(); pg.type='sine'; pg.frequency.value=2637;
+  pgg.gain.setValueAtTime(0.0001,t+0.02); pgg.gain.exponentialRampToValueAtTime(0.09,t+0.03); pgg.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+  pg.connect(pgg).connect(OUT(a)); pg.start(t); pg.stop(t+0.4);
+  buzz([30]); shake=Math.max(shake,2.5);
+}
+function buzz(p){ try{ navigator.vibrate&&navigator.vibrate(p) }catch(e){} }
+
+/* ---------- Game state ---------- */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let introT=9, introDur=0, lastInput=0;
+let numMode=false; try{ numMode=localStorage.getItem('gearSynchroNum')==='1' }catch(e){}
+let hitStop=0, zoom=1, zoomVel=0, flash=0, plateGlow=0, flyers=[];
+let total=0, stageStartTotal=0, stageScore=0, best=0, gearPts=0, layerPts=0, popups=[];
+try{ best=+localStorage.getItem('gearSynchroBest')||0 }catch(e){}
+let stage=1, net=null, start=null, solution=[], par=0, moves=0, maxChain=0, undo=[], busy=false, drag=null, focusId=null,
+    view={s:1,x:0,y:0,cx:0,cy:0}, shake=0, particles=[], demo=false, depthView=0;
+
+function loadStage(n){
+  stage=n; stageStartTotal=total;
+  const P=stageParams(n), {sizes,steps}=P;
+  $('tip').hidden=!P.tip; if(P.tip){ $('tipHead').textContent=P.head; $('tipText').textContent=P.tip }
+  let res=null, seed=1000+n*7919;
+  while(!res) res=new StageGenerator(seed++).generate(sizes,steps,P.kMax||5,P.ratchetP||0,P.ratchetMin||0);
+  ({net,start,solution,par}=res);
+  for(const g of net.gears){ g.vis=g.count; buildPath(g) }
+  resetBoard(); depthView=0; fit();
+  try{ if(n>(+localStorage.getItem('gearSynchroStage')||1)) localStorage.setItem('gearSynchroStage',String(n)) }catch(e){}
+  // 組み立て演出: 奥の層から、中心に近い順に歯車がはまっていく
+  const cx=view.cx, cy=view.cy;
+  const order=[...net.gears].sort((a,b)=>(b.layer-a.layer)||(Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy)));
+  const step=Math.min(0.07,1.1/order.length);
+  order.forEach((g,i)=>{ g.introD=i*step; g.landed=false });
+  introT=0; introDur=(order.length-1)*step+0.45; lastInput=performance.now();
+  banner('STAGE '+n);
+  const gl=$('glass'); gl.classList.remove('sweep'); void gl.offsetWidth; gl.classList.add('sweep');
+}
+function resetBoard(){
+  net.restore(start); moves=0; maxChain=0; undo=[]; demo=false; focusId=null;
+  total=stageStartTotal; stageScore=0; gearPts=0; layerPts=0; popups=[];
+  for(const g of net.gears){ g.dieT=0; g.lockT=0; g.offset=0; g.fly=null }
+  particles=[]; $('clear').hidden=true; hud();
+}
+function hud(){
+  const act=net.activeLayer(), D=net.depth, cur=act<0?D:act+1;
+  $('vStage').textContent=stage; $('vLayer').textContent=cur+'/'+D; $('vMoves').textContent=moves; $('vPar').textContent=par; $('vChain').textContent=maxChain;
+  $('vScore').textContent=total.toLocaleString(); $('vBest').textContent=Math.max(best,total).toLocaleString();
+  $('btnUndo').disabled=busy||!undo.length; $('btnSolve').disabled=busy; $('btnReset').disabled=busy;
+  let h='<small>DEPTH</small>';
+  for(let L=0;L<D;L++) h+='<i class="'+(act<0||L<act?'done':L===act?'now':'')+'"></i>';
+  $('depth').innerHTML=h;
+}
+function hintOn(){ return stage===1&&moves===0&&!busy&&!drag }
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function runResolve(){
+  busy=true; hud(); let chain=0;
+  for(;;){
+    const before=net.activeLayer();
+    const m=net.findMatches(); if(!m.length) break;
+    chain++;
+    m.forEach(id=>net.gears[id].lockT=1); chime(chain);
+    await wait(220);
+    const shocked=net.remove(m);
+    const gx=m.reduce((a,id)=>a+net.gears[id].x,0)/m.length, gy=m.reduce((a,id)=>a+net.gears[id].y,0)/m.length;
+    hitStop=Math.min(0.22,0.07+0.035*(chain-1));
+    flash=Math.min(0.55,0.22+0.07*chain); plateGlow=Math.min(1,plateGlow+0.3+0.1*chain);
+    zoomVel+=0.5+0.3*chain;
+    m.forEach(id=>{ const g=net.gears[id]; launch(g,gx,gy,chain); burst(g,chain) });
+    const pts=m.length*100*chain;
+    addScore(pts,'gear');
+    const cx=m.reduce((a,id)=>a+net.gears[id].x,0)/m.length, cy=m.reduce((a,id)=>a+net.gears[id].y,0)/m.length;
+    popup(cx,cy,'+'+pts+(chain>=2?'  ×'+chain:''),chain>=2);
+    shake=Math.min(14,4+chain*2.5);
+    if(chain>=2) banner(chain+' CHAIN');
+    await wait(150);
+    net.shock(shocked); shocked.forEach(id=>click(net.gears[id].teeth));
+    await wait(380);
+    const after=net.activeLayer();
+    if(after!==before&&after>=0){ const b=500*(before+1); addScore(b,'layer'); descend(); banner('LAYER '+(after+1)); popup(view.cx,view.cy+40,'層クリア +'+b,true); hud(); await wait(700) }
+  }
+  maxChain=Math.max(maxChain,chain); busy=false; hud();
+  if(net.cleared()) win();
+}
+function banner(t){ const el=$('chain'); el.textContent=t; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show') }
+function addScore(v,kind){
+  if(demo) return;
+  total+=v; stageScore+=v; if(kind==='gear') gearPts+=v; if(kind==='layer') layerPts+=v;
+  hud();
+}
+function popup(x,y,text,big){ if(!demo) popups.push({x,y,text,big,life:1}) }
+function win(){
+  const bd=$('breakdown'); bd.innerHTML='';
+  if(demo){ $('clearText').textContent=`解答例（${par}手）の再生でした。点数は加算されません。` }
+  else{
+    if(net.depth>=1) addScore(500*net.depth,'layer');
+    const clearB=1000+(moves<=par?1000:0), moveB=Math.max(0,par*2-moves)*150;
+    addScore(clearB+moveB,'clear');
+    const rows=[['歯車',gearPts],['層クリア',layerPts],['ステージクリア',clearB],['手数ボーナス',moveB]];
+    bd.innerHTML=rows.map(([k,v])=>`<span>${k}</span><span>${v.toLocaleString()}</span>`).join('')+`<span class="tot">ステージ合計</span><span class="tot">${stageScore.toLocaleString()}</span>`;
+    $('clearText').textContent=`${moves}手でクリア（目安 ${par}手）・最大連鎖 ${maxChain}`;
+    if(total>best){ best=total; try{ localStorage.setItem('gearSynchroBest',String(best)) }catch(e){} }
+    hud();
+  }
+  setTimeout(()=>{ $('clear').hidden=false },500);
+}
+async function playSolution(){
+  if(busy) return; resetBoard(); demo=true; busy=true; hud();
+  await wait(450);
+  for(const m of solution){
+    const g=net.gears[m.id]; if(!g.alive) break;
+    focusId=m.id; await wait(250);
+    const dir=Math.sign(m.k);
+    for(let i=0;i<Math.abs(m.k)/g.step;i++){ net.rotate(m.id,dir*g.step); click(g.teeth); await wait(g.step>1?220:110) }
+    moves++; focusId=null; await wait(120);
+    await runResolve(); busy=true; hud();
+  }
+  busy=false; focusId=null; hud();
+}
+
+/* ---------- Input ---------- */
+function toLogical(e){ const b=cv.getBoundingClientRect(); return {x:(e.clientX-b.left-view.x)/view.s, y:(e.clientY-b.top-view.y)/view.s} }
+function hasMatch(){ return net.findMatches().length>0 }
+function wouldMatch(id,dir){ const sn=net.snapshot(); net.rotate(id,dir); const r=hasMatch(); net.restore(sn); return r }
+function setOffset(g,v){ g.offset=v; if(g.axle>=0) setOffset(net.gears[g.axle],v*g.ratio) }
+cv.addEventListener('pointerdown',e=>{
+  audio(); lastInput=performance.now(); if(busy||!net||introT<introDur) return;
+  const p=toLogical(e), act=net.activeLayer();
+  let best=null, bd=1e9;
+  for(const g of net.gears){ if(!g.alive||g.layer!==act) continue; const d=Math.hypot(p.x-g.x,p.y-g.y); if(d<g.outer+6&&d/g.outer<bd){ bd=d/g.outer; best=g } }
+  if(!best) return;
+  drag={was:false, g:best, prev:Math.atan2(p.y-best.y,p.x-best.x), acc:0, net0:0, snap:net.snapshot(), ns:net.neighbors(best.id).map(i=>net.gears[i])};
+  cv.setPointerCapture(e.pointerId); cv.classList.add('dragging');
+});
+cv.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  const p=toLogical(e), g=drag.g;
+  if(Math.hypot(p.x-g.x,p.y-g.y)<g.r*0.22) return;
+  const a=Math.atan2(p.y-g.y,p.x-g.x);
+  let d=a-drag.prev; if(d>Math.PI) d-=TAU; if(d<-Math.PI) d+=TAU; drag.prev=a;
+  const locked=hasMatch();
+  drag.acc+=d/(g.pitch*g.step)*(locked?0.4:1);            // 揃っている間は離れにくい
+  if(!locked){                                   // 吸い付き: あと半歯で揃うなら最後の1歯へ引き込む
+    const dir=Math.sign(drag.acc);
+    if(dir&&Math.abs(drag.acc)>0.45&&wouldMatch(g.id,dir*g.step)) drag.acc=dir;
+  }
+  const step=dir=>{ net.rotate(g.id,dir*g.step); drag.net0+=dir; const now=hasMatch();
+    if(now&&!drag.was){ gachi(); net.findMatches().forEach(id=>net.gears[id].lockT=Math.max(net.gears[id].lockT,0.5)) } else click(g.teeth);
+    drag.was=now };
+  while(drag.acc>=1){ drag.acc-=1; step(1) }
+  while(drag.acc<=-1){ drag.acc+=1; step(-1) }
+  const vis=drag.acc*g.step*(hasMatch()?0.25:0.6);
+  setOffset(g,vis); drag.ns.forEach(n=>setOffset(n,-vis));
+});
+function endDrag(){
+  if(!drag) return;
+  const d=drag; drag=null; cv.classList.remove('dragging');
+  setOffset(d.g,0); d.ns.forEach(n=>setOffset(n,0));
+  if(d.net0!==0){ undo.push({snap:d.snap,moves,maxChain,total,stageScore,gearPts,layerPts}); moves++; hud(); runResolve() }
+}
+cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
+
+$('btnUndo').onclick=()=>{ if(busy||!undo.length) return; const u=undo.pop(); net.restore(u.snap); moves=u.moves; maxChain=u.maxChain; total=u.total; stageScore=u.stageScore; gearPts=u.gearPts; layerPts=u.layerPts; popups=[];
+  for(const g of net.gears) if(g.alive){ g.dieT=0; g.lockT=0; g.fly=null } $('clear').hidden=true; hud() };
+$('btnReset').onclick=()=>{ if(!busy) resetBoard() };
+$('btnSolve').onclick=playSolution;
+function syncNum(){ $('btnNum').setAttribute('aria-pressed',numMode); $('btnNum').classList.toggle('on',numMode) }
+$('btnNum').onclick=()=>{ numMode=!numMode; try{ localStorage.setItem('gearSynchroNum',numMode?'1':'0') }catch(e){} syncNum() };
+syncNum();
+$('btnNext').onclick=$('btnNext2').onclick=()=>{ if(!busy||$('clear').hidden===false){ busy=false; loadStage(stage+1) } };
+
+/* ---------- Rendering ---------- */
+const METALS={8:['#e4ebf0','#97a3ad','#4e5861'],12:['#f0d27c','#b48a33','#5f4818'],16:['#eeae82','#b36d40','#5e3218']};
+function buildPath(g){
+  const p=new Path2D(), N=g.teeth, r=g.r, ro=r+MODULE*0.95, rr=r-MODULE*1.15, pt=TAU/N;
+  for(let j=0;j<N;j++){
+    const a=j*pt;
+    [[rr,a-pt*0.5],[rr,a-pt*0.27],[ro,a-pt*0.14],[ro,a+pt*0.14],[rr,a+pt*0.27]].forEach(([R,t],i)=>{
+      const x=Math.cos(t)*R,y=Math.sin(t)*R; (j===0&&i===0)?p.moveTo(x,y):p.lineTo(x,y) });
+  }
+  p.closePath();
+  const hub=MODULE*1.9;
+  p.moveTo(hub,0); p.arc(0,0,hub,0,TAU,true);
+  if(N>=12){
+    const k=N===12?4:6, rim=r-MODULE*2.1, inner=Math.max(hub+MODULE*0.9,r*0.27), span=TAU/k;
+    for(let i=0;i<k;i++){ const a0=i*span+span*0.1, a1=(i+1)*span-span*0.1;
+      p.moveTo(Math.cos(a0)*rim,Math.sin(a0)*rim); p.arc(0,0,rim,a0,a1); p.arc(0,0,inner,a1,a0,true); p.closePath() }
+  }
+  g.path=p;
+}
+function fit(){
+  const dpr=Math.min(2,window.devicePixelRatio||1), W=cv.clientWidth, H=cv.clientHeight;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); view.dpr=dpr; view.W=W; view.H=H;
+  if(!net) return;
+  const gs=net.gears;
+  const x0=Math.min(...gs.map(g=>g.x-g.outer)), x1=Math.max(...gs.map(g=>g.x+g.outer));
+  const y0=Math.min(...gs.map(g=>g.y-g.outer-14)), y1=Math.max(...gs.map(g=>g.y+g.outer+10));
+  view.s=Math.min((W-28)/(x1-x0),(H-28)/(y1-y0),2.2);
+  view.cx=(x0+x1)/2; view.cy=(y0+y1)/2;
+  view.x=W/2-view.cx*view.s; view.y=H/2-view.cy*view.s;
+  buildLabyrinth();
+}
+new ResizeObserver(fit).observe(cv);
+
+/* ---------- 迷宮プレート: 文字盤と同心の円形迷宮。通路は穴になっていて、奥の歯車機構が覗く ---------- */
+const LAB={plate:null,under:[],key:''};
+function bigGearPath(teeth,m){
+  const p=new Path2D(), r=m*teeth/2, ro=r+m, rr=r-m*1.25, pt=TAU/teeth;
+  for(let j=0;j<teeth;j++){ const a=j*pt;
+    [[rr,a-pt*.5],[rr,a-pt*.25],[ro,a-pt*.12],[ro,a+pt*.12],[rr,a+pt*.25]].forEach(([R,t],i)=>{ const x=Math.cos(t)*R,y=Math.sin(t)*R; (j===0&&i===0)?p.moveTo(x,y):p.lineTo(x,y) }) }
+  p.closePath();
+  const k=teeth>=40?6:5, rim=r-m*2.4, hub=r*0.2, span=TAU/k;
+  for(let i=0;i<k;i++){ const a0=i*span+span*.12, a1=(i+1)*span-span*.12;
+    p.moveTo(Math.cos(a0)*rim,Math.sin(a0)*rim); p.arc(0,0,rim,a0,a1); p.arc(0,0,hub+m*1.5,a1,a0,true); p.closePath() }
+  p.moveTo(hub,0); p.arc(0,0,hub,0,TAU,true);
+  return p;
+}
+function buildLabyrinth(){
+  const {W,H,dpr}=view; if(!W||!H) return;
+  const key=W+'x'+H+'@'+dpr+'#'+stage; if(LAB.key===key) return; LAB.key=key;
+  const rnd=mulberry32(stage*977+13), cx=W/2, cy=H*0.5, S=Math.max(18,Math.min(W,H)*0.068);
+  // 極座標の迷路（再帰的バックトラック）
+  const r0=S*1.6, maxR=Math.hypot(W/2,H/2)+S, rings=[];
+  let cells=6;
+  for(let r=r0;r<maxR;r+=S){ const mid=r+S/2; if(TAU*mid/cells>S*2.1) cells*=2; rings.push({r,mid,n:cells}) }
+  const id=(i,j)=>i*4096+j, seen=new Set(), pass=[];
+  const nb=(i,j)=>{ const R=rings[i], out=[[i,(j+1)%R.n],[i,(j-1+R.n)%R.n]];
+    if(i>0){ const P=rings[i-1]; out.push([i-1,Math.floor(j*P.n/R.n)]) }
+    if(i<rings.length-1){ const Q=rings[i+1], f=Q.n/R.n; for(let k=0;k<f;k++) out.push([i+1,j*f+k]) }
+    return out };
+  const stack=[[0,0]]; seen.add(id(0,0));
+  while(stack.length){ const [i,j]=stack[stack.length-1]; const opts=nb(i,j).filter(([a,b])=>!seen.has(id(a,b)));
+    if(!opts.length){ stack.pop(); continue }
+    const [a,b]=opts[Math.floor(rnd()*opts.length)]; seen.add(id(a,b)); pass.push([i,j,a,b]); stack.push([a,b]) }
+  const ang=(i,j)=>(j+0.5)/rings[i].n*TAU-Math.PI/2;
+  const path=new Path2D();
+  for(const [i,j,a,b] of pass){
+    if(i===a){ const R=rings[i], A=ang(i,j), B=ang(a,b); let d=B-A; if(d>Math.PI) d-=TAU; if(d<-Math.PI) d+=TAU;
+      path.moveTo(cx+Math.cos(A)*R.mid,cy+Math.sin(A)*R.mid); path.arc(cx,cy,R.mid,A,A+d,d<0) }
+    else{ const [ci,cj,pi,pj]=i>a?[i,j,a,b]:[a,b,i,j], A=ang(ci,cj), C=rings[ci], P=rings[pi], B=ang(pi,pj);
+      path.moveTo(cx+Math.cos(A)*C.mid,cy+Math.sin(A)*C.mid); path.lineTo(cx+Math.cos(A)*P.mid,cy+Math.sin(A)*P.mid);
+      let d=B-A; if(d>Math.PI) d-=TAU; if(d<-Math.PI) d+=TAU; if(Math.abs(d)>1e-4) path.arc(cx,cy,P.mid,A,A+d,d<0) }
+  }
+  // 中心から迷宮への入口
+  path.moveTo(cx,cy-r0*0.2); path.lineTo(cx+Math.cos(ang(0,0))*rings[0].mid,cy+Math.sin(ang(0,0))*rings[0].mid);
+  const w=S*0.44;
+  const pc=document.createElement('canvas'); pc.width=Math.round(W*dpr); pc.height=Math.round(H*dpr);
+  const c=pc.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0);
+  const g=c.createRadialGradient(cx,cy*0.9,10,cx,cy,Math.max(W,H)*0.8); g.addColorStop(0,'#2b3037'); g.addColorStop(1,'#16191d');
+  c.fillStyle=g; c.fillRect(0,0,W,H);
+  c.strokeStyle='rgba(207,169,79,0.045)'; c.lineWidth=1;
+  for(let r=6;r<maxR;r+=4){ c.beginPath(); c.arc(cx,cy,r,0,TAU); c.stroke() }        // ギョーシェ彫り
+  c.lineCap='round'; c.lineJoin='round';
+  c.strokeStyle='rgba(225,190,110,0.22)'; c.lineWidth=w+4; c.stroke(path);           // 縁の面取りの光
+  c.strokeStyle='rgba(0,0,0,0.75)'; c.lineWidth=w+1.6; c.stroke(path);              // 縁の影
+  c.globalCompositeOperation='destination-out'; c.lineWidth=w; c.stroke(path);       // 通路を抜く
+  c.globalCompositeOperation='source-over';
+  // 迷宮の交点に打たれたネジ
+  for(let k=0;k<26;k++){ const i=Math.floor(rnd()*rings.length), R=rings[i], a=rnd()*TAU, x=cx+Math.cos(a)*R.r, y=cy+Math.sin(a)*R.r;
+    if(x<0||y<0||x>W||y>H) continue;
+    c.fillStyle='rgba(0,0,0,.5)'; c.beginPath(); c.arc(x+.8,y+1,3.4,0,TAU); c.fill();
+    c.fillStyle='#8f7a4a'; c.beginPath(); c.arc(x,y,3,0,TAU); c.fill();
+    c.strokeStyle='rgba(30,24,12,.8)'; c.lineWidth=1; c.beginPath(); c.moveTo(x-2*Math.cos(a),y-2*Math.sin(a)); c.lineTo(x+2*Math.cos(a),y+2*Math.sin(a)); c.stroke() }
+  LAB.plate=pc;
+  // 奥の機構: 大きな歯車が数枚。秒ごとに1歯ずつ進む（脱進機のように）
+  LAB.under=[]; const m=Math.max(3,S*0.2);
+  const T=[30,40,24,36,48,28];
+  let prev=null;
+  for(let k=0;k<6;k++){
+    const teeth=T[k], r=m*teeth/2; let x,y;
+    if(prev&&rnd()<0.75){ const a=rnd()*TAU, d=prev.r+r; x=prev.x+Math.cos(a)*d; y=prev.y+Math.sin(a)*d }
+    else{ x=rnd()*W; y=rnd()*H }
+    const gg={x,y,r,teeth,path:bigGearPath(teeth,m),dir:prev?-prev.dir:1,ph:rnd()*TAU,tone:k%3};
+    LAB.under.push(gg); prev=gg;
+  }
+}
+const UNDER_TONES=[['#7a6334','#33291a'],['#69717c','#2a2f35'],['#8a5a3c','#352219']];
+function drawLabyrinthUnder(c,W,H){
+  c.fillStyle='#08090b'; c.fillRect(0,0,W,H);
+  const now=Date.now()/1000, sec=Math.floor(now), f=now-sec;
+  const q=Math.min(1,f*7), e=1+2.2*Math.pow(q-1,3)+1.2*Math.pow(q-1,2);       // 毎秒のカチッ（easeOutBack）
+  for(const g of LAB.under){
+    const a=g.ph+g.dir*(sec+e)*(TAU/g.teeth);
+    c.save(); c.translate(g.x,g.y); c.rotate(a);
+    const [hi,lo]=UNDER_TONES[g.tone], gr=c.createRadialGradient(-g.r*.3,-g.r*.3,4,0,0,g.r*1.1);
+    gr.addColorStop(0,hi); gr.addColorStop(1,lo); c.fillStyle=gr; c.fill(g.path,'evenodd'); c.restore();
+  }
+  const cx=W/2, cy=H*0.5;
+  const lg=c.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*0.7);
+  lg.addColorStop(0,'rgba(255,205,110,'+(0.15+plateGlow*0.55)+')'); lg.addColorStop(1,'rgba(255,205,110,'+(0.02+plateGlow*0.25)+')');
+  c.fillStyle=lg; c.fillRect(0,0,W,H);
+}
+function drawSubDial(c,x,y,R,label,frac,marks){
+  c.save(); c.translate(x,y);
+  c.fillStyle='rgba(0,0,0,.5)'; c.beginPath(); c.arc(1.5,2.5,R+3,0,TAU); c.fill();
+  const g=c.createRadialGradient(-R*.3,-R*.3,2,0,0,R); g.addColorStop(0,'#2e343b'); g.addColorStop(1,'#1a1d21');
+  c.fillStyle=g; c.beginPath(); c.arc(0,0,R,0,TAU); c.fill();
+  c.strokeStyle='rgba(207,169,79,.55)'; c.lineWidth=1.5; c.stroke();
+  for(let i=0;i<marks;i++){ const a=i/marks*TAU; c.strokeStyle='rgba(207,169,79,.5)'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(Math.sin(a)*R*.78,-Math.cos(a)*R*.78); c.lineTo(Math.sin(a)*R*.92,-Math.cos(a)*R*.92); c.stroke() }
+  c.fillStyle='rgba(207,169,79,.7)'; c.font='600 '+Math.round(R*.26)+'px "IBM Plex Mono", monospace'; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(label,0,R*.42);
+  c.save(); c.rotate(frac*TAU); c.strokeStyle='#c8264a'; c.lineWidth=1.6; c.lineCap='round';
+  c.beginPath(); c.moveTo(0,R*.15); c.lineTo(0,-R*.72); c.stroke(); c.restore();
+  c.fillStyle='#cfa94f'; c.beginPath(); c.arc(0,0,2.2,0,TAU); c.fill();
+  c.restore();
+}
+
+function launch(g,cx,cy,chain){
+  let dx=g.x-cx, dy=g.y-cy; const l=Math.hypot(dx,dy)||1; dx/=l; dy/=l;
+  const pw=1+chain*0.15;
+  g.fly={x:g.x,y:g.y,vx:(dx*140+(Math.random()-.5)*80)*pw,vy:(-280-Math.random()*140)*pw,vr:(Math.random()<.5?-1:1)*(7+Math.random()*7),rot:0,s:1,vs:0.9+Math.random()*0.4,t:0};
+  for(let i=0;i<3;i++){ const a=Math.random()*TAU, sp=120+Math.random()*200;
+    particles.push({screw:true,x:g.x,y:g.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-200,life:1.4,rot:Math.random()*TAU,vr:(Math.random()-.5)*30,s:3.2}) }
+}
+function burst(g,chain=1){
+  const c=METALS[g.teeth];
+  for(let i=0,N=28+14*(chain-1);i<Math.min(N,90);i++){ const a=Math.random()*TAU, sp=60+Math.random()*220;
+    particles.push({x:g.x+Math.cos(a)*g.r*0.8,y:g.y+Math.sin(a)*g.r*0.8,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-40,life:1,col:c[i%3],s:2+Math.random()*4,rot:Math.random()*TAU,vr:(Math.random()-.5)*20}) }
+  particles.push({ring:true,x:g.x,y:g.y,r:g.r,life:1});
+}
+function drawPlate(){
+  const {W,H}=view;
+  if(!LAB.plate) buildLabyrinth();
+  drawLabyrinthUnder(ctx,W,H);
+  if(LAB.plate) ctx.drawImage(LAB.plate,0,0,W,H);
+  drawClockFace(ctx,W/2,H*0.5,Math.min(W,H)*0.47,1.15,true);
+  // 小窓の文字盤: 左上=手数（目安で一周の半分）、右下=いまの層
+  const R=Math.min(W,H)*0.085;
+  if(net){
+    drawSubDial(ctx,R+12,R+12,R,'手数',Math.min(1,moves/Math.max(1,par*2)),8);
+    const D=net.depth, act=net.activeLayer();
+    drawSubDial(ctx,W-R-12,H-R-12,R,'層',(act<0?D-1:act)/5,5);
+  }
+}
+const ROMAN=['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'];
+function drawClockFace(c,cx,cy,R,k,band){
+  c.save(); c.translate(cx,cy);
+  if(band){   // 迷宮を横切るチャプターリング（目盛りの帯）
+    c.fillStyle='rgba(28,32,37,.92)'; c.beginPath(); c.arc(0,0,R+2,0,TAU); c.arc(0,0,R*0.86,0,TAU,true); c.fill('evenodd');
+    c.strokeStyle='rgba(225,190,110,.35)'; c.lineWidth=1; c.beginPath(); c.arc(0,0,R+2,0,TAU); c.stroke(); c.beginPath(); c.arc(0,0,R*0.86,0,TAU); c.stroke();
+  }
+  c.strokeStyle='rgba(207,169,79,'+0.16*k+')'; c.lineWidth=1;
+  c.beginPath(); c.arc(0,0,R,0,TAU); c.stroke(); c.beginPath(); c.arc(0,0,R-R*0.13,0,TAU); c.stroke();
+  for(let i=0;i<60;i++){ const a=i/60*TAU, big=i%5===0, l=big?R*0.07:R*0.03;
+    c.strokeStyle='rgba(207,169,79,'+(big?0.32:0.16)*k+')'; c.lineWidth=big?2:1;
+    c.beginPath(); c.moveTo(Math.sin(a)*(R-3),-Math.cos(a)*(R-3)); c.lineTo(Math.sin(a)*(R-3-l),-Math.cos(a)*(R-3-l)); c.stroke() }
+  c.fillStyle=band?'rgba(235,200,120,.62)':'rgba(207,169,79,'+0.24*k+')'; if(band){ c.shadowColor='rgba(0,0,0,.9)'; c.shadowBlur=4 } c.font='italic 600 '+Math.round(R*0.1)+'px "Bodoni Moda", Didot, serif'; c.textAlign='center'; c.textBaseline='middle';
+  ROMAN.forEach((t,i)=>{ const a=i/12*TAU, rr=R*0.76; c.fillText(t,Math.sin(a)*rr,-Math.cos(a)*rr) }); c.shadowBlur=0;
+  // 本物の時刻で動く針
+  const d=new Date(), sec=d.getSeconds()+d.getMilliseconds()/1000, min=d.getMinutes()+sec/60, hr=(d.getHours()%12)+min/60;
+  const hand=(ang,len,w,col)=>{ c.save(); c.rotate(ang); c.fillStyle=col; c.beginPath(); c.moveTo(-w,R*0.08); c.lineTo(-w*0.35,-len); c.lineTo(0,-len-w*1.6); c.lineTo(w*0.35,-len); c.lineTo(w,R*0.08); c.closePath(); c.fill(); c.restore() };
+  hand(hr/12*TAU,R*0.42,R*0.028,'rgba(207,169,79,'+0.2*k+')');
+  hand(min/60*TAU,R*0.64,R*0.018,'rgba(207,169,79,'+0.2*k+')');
+  c.save(); c.rotate(sec/60*TAU); c.strokeStyle='rgba(200,38,74,'+0.35*k+')'; c.lineWidth=1.2; c.beginPath(); c.moveTo(0,R*0.12); c.lineTo(0,-R*0.7); c.stroke(); c.restore();
+  c.fillStyle='rgba(207,169,79,'+0.3*k+')'; c.beginPath(); c.arc(0,0,R*0.025,0,TAU); c.fill();
+  c.restore();
+}
+// 奥の層ほど中心へ寄せて小さく・暗く描く
+function depthXform(rel){ return {k:1-rel*0.045, dy:rel*8} }
+function project(g,rel){ const {k,dy}=depthXform(rel); return {x:view.cx+(g.x-view.cx)*k, y:view.cy+(g.y-view.cy)*k+dy, k} }
+
+function drawGear(g,rel,ctxState){
+  const {ready,facesAny,act}=ctxState;
+  let alpha=1, sc=1;
+  let F=null;
+  if(!g.alive){ F=g.fly; if(!F||F.t>=1.6) return; alpha=Math.min(1,(1.6-F.t)*2.5); sc=F.s }
+  else if(introT<introDur+0.5){
+    const q=Math.max(0,Math.min(1,(introT-(g.introD||0))/0.38)); if(q<=0) return;
+    const c1=1.9, e=1+(c1+1)*Math.pow(q-1,3)+c1*Math.pow(q-1,2);   // easeOutBack
+    sc*=e; alpha*=Math.min(1,q*3);
+    if(q>=1&&!g.landed){ g.landed=true; if(ac) click(g.teeth) }
+  }
+  if(rel>4.5) return;
+  if(alpha<=0.01) return;
+  const P=F?{x:F.x,y:F.y,k:1}:project(g,Math.max(0,rel)), c=METALS[g.teeth], dim=Math.min(0.58,Math.max(0,rel)*0.17);
+  ctx.save(); ctx.translate(P.x,P.y); if(F) ctx.rotate(F.rot); ctx.globalAlpha=alpha; ctx.scale(sc*P.k,sc*P.k);
+  ctx.fillStyle='rgba(0,0,0,0.38)'; ctx.beginPath(); ctx.arc(3,5,g.outer,0,TAU); ctx.fill();
+  const isAct=g.layer===act;
+  const glow=isAct?Math.max(g.lockT,ready.has(g.id)?0.55:0,focusId===g.id?0.4:0, hintOn()&&solution[0].id===g.id?0.35+0.35*Math.sin(performance.now()/260):0):0;
+  if(glow>0){ ctx.shadowColor='rgba(255,215,120,'+glow+')'; ctx.shadowBlur=26*glow }
+  ctx.save(); ctx.rotate(g.phase+g.vis*g.pitch);
+  const grd=ctx.createRadialGradient(-g.r*0.35,-g.r*0.4,g.r*0.1,0,0,g.outer);
+  grd.addColorStop(0,c[0]); grd.addColorStop(0.55,c[1]); grd.addColorStop(1,c[2]);
+  ctx.fillStyle=grd; ctx.fill(g.path,'evenodd');
+  ctx.shadowBlur=0; ctx.lineWidth=0.8; ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.stroke(g.path);
+  if(dim>0){ ctx.fillStyle='rgba(16,19,23,'+dim+')'; ctx.fill(g.path,'evenodd') }
+  ctx.restore(); ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,0,g.r-MODULE*1.9,0,TAU); ctx.stroke();
+  // ▲（位相なし: 0 = 12時）
+  ctx.save(); ctx.rotate(g.vis*g.pitch);
+  const my=-(g.r-MODULE*2.0), ms=MODULE*0.95;
+  ctx.fillStyle=isAct&&facesAny.has(g.id)?'#ffe3a1':'#c8264a'; ctx.strokeStyle='rgba(20,8,10,.7)'; ctx.lineWidth=1;
+  if(!isAct) ctx.globalAlpha=alpha*(1-dim*0.6);
+  ctx.beginPath(); ctx.moveTo(0,my-ms*1.2); ctx.lineTo(ms,my+ms*0.6); ctx.lineTo(-ms,my+ms*0.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  // 同軸インジケータ: 銀の輪 + 奥の歯車の向き
+  const B=g.axle>=0?net.gears[g.axle]:null;
+  if(isAct&&B&&B.alive){
+    const rr=MODULE*3.1;
+    ctx.strokeStyle='#9fb4c0'; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(0,0,rr,0,TAU); ctx.stroke();
+    ctx.save(); ctx.rotate(B.vis*B.pitch);
+    ctx.fillStyle='#cfdde6'; ctx.beginPath(); ctx.moveTo(0,-rr-1); ctx.lineTo(3.2,-rr+5); ctx.lineTo(-3.2,-rr+5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    if(g.ratio===2){ ctx.fillStyle='#cfdde6'; ctx.font='600 7px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.fillText('×2',0,rr+9) }
+  }
+  // 札: ラチェット刻み（常時）と歯数（数字モード）
+  const tag=[(numMode&&isAct)?g.teeth+'歯':'', g.step>1?'±'+g.step:''].filter(Boolean).join(' ');
+  if(tag){
+    ctx.save(); ctx.font='600 8px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    const tw=ctx.measureText(tag).width+8, ty=MODULE*2.75;
+    ctx.fillStyle='rgba(18,21,24,.88)'; ctx.beginPath(); ctx.roundRect?ctx.roundRect(-tw/2,ty-6,tw,12,6):ctx.rect(-tw/2,ty-6,tw,12); ctx.fill();
+    ctx.strokeStyle=g.step>1?'#cfa94f':'#4a5058'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle=g.step>1?'#ffe3a1':'#ece6d6'; ctx.fillText(tag,0,ty+0.5); ctx.restore();
+  }
+  const jr=MODULE*1.25, jg=ctx.createRadialGradient(-jr*.35,-jr*.35,1,0,0,jr);
+  jg.addColorStop(0,'#ff9fb3'); jg.addColorStop(0.5,'#c8264a'); jg.addColorStop(1,'#5a0c1d');
+  ctx.fillStyle='#2a2d31'; ctx.beginPath(); ctx.arc(0,0,jr+2.2,0,TAU); ctx.fill();
+  ctx.fillStyle=jg; ctx.beginPath(); ctx.arc(0,0,jr,0,TAU); ctx.fill();
+  if(g.lockT>0){ ctx.strokeStyle='rgba(255,227,161,'+g.lockT+')'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,g.outer+4,0,TAU); ctx.stroke() }
+  ctx.restore();
+}
+
+let last=performance.now();
+function frame(now){
+  const rdt=Math.min(1/30,(now-last)/1000); last=now;
+  let dt=rdt; if(hitStop>0){ hitStop-=rdt; dt=0 }
+  flash=Math.max(0,flash-rdt*3); plateGlow=Math.max(0,plateGlow-rdt*0.35);
+  { const a=-(zoom-1)*300-zoomVel*22; zoomVel+=a*rdt; zoom+=zoomVel*rdt; }
+  if(net) for(const g of net.gears){ const F=g.fly; if(!F||g.alive||F.t>=1.6) continue;
+    F.t+=dt; F.vy+=1100*dt; F.x+=F.vx*dt; F.y+=F.vy*dt; F.rot+=F.vr*dt; F.s+=F.vs*dt*(F.t<0.35?1:-0.6) }
+  const {dpr,W}=view; if(!net||!W){ requestAnimationFrame(frame); return }
+  const act=net.activeLayer();
+  depthView+=((act<0?net.depth-1:act)-depthView)*Math.min(1,dt*4);
+  const ready=new Set(drag||busy?net.findMatches():[]);
+  for(const g of net.gears){
+    const target=g.count+g.offset, a=(target-g.vis)*520-g.vel*30;
+    g.vel+=a*dt; g.vis+=g.vel*dt;
+    if(g.lockT>0) g.lockT=Math.max(0,g.lockT-dt*1.5);
+    if(g.dieT>0&&g.dieT<1) g.dieT=Math.min(1,g.dieT+dt*3.2);
+  }
+  shake*=Math.pow(0.002,dt);
+  introT+=rdt;
+  if(!busy&&!drag&&introT>introDur&&$('clear').hidden&&now-lastInput>7000){
+    lastInput=now;
+    const act=net.activeLayer(), cand=moves===0&&solution.length?net.gears[solution[0].id]:net.gears.find(g=>g.alive&&g.layer===act);
+    if(cand&&cand.alive){ cand.vel+=4.5; net.neighbors(cand.id).forEach(i=>net.gears[i].vel-=4.5) }
+  }
+  ctx.setTransform(dpr,0,0,dpr,0,0); drawPlate();
+  if(RM){ shake=0; zoom=1; zoomVel=0; flash=0 }
+  const sx=(Math.random()-.5)*shake, sy=(Math.random()-.5)*shake;
+  const zs=view.s*zoom, zx=W/2+(view.x-W/2)*zoom, zy=view.H/2+(view.y-view.H/2)*zoom;
+  ctx.setTransform(dpr*zs,0,0,dpr*zs,dpr*(zx+sx),dpr*(zy+sy));
+
+  const facesAny=new Set();
+  for(const g of net.gears){ if(!g.alive||g.layer!==act) continue; const ns=net.neighbors(g.id);
+    if(ns.length?ns.some(n=>net.facing(g.id,n)):g.aligned) facesAny.add(g.id) }
+  const st={ready,facesAny,act};
+  // 奥から手前へ
+  for(let L=net.depth-1;L>=0;L--){
+    const rel=L-depthView; if(rel>4.5) continue;
+    for(const g of net.gears) if(g.layer===L&&g.alive) drawGear(g,rel,st);
+  }
+  // 数字モード: 相手を向くまで時計回りに何歯か（歯数で割った余り）
+  if(numMode){
+    const badge=(x,y,v,hot,R,fs)=>{ ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.fillStyle=hot?'#ffe3a1':'rgba(18,21,24,.92)'; ctx.fill();
+      ctx.strokeStyle=hot?'#ffe3a1':'#cfa94f'; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.fillStyle=hot?'#1a1408':'#ece6d6'; ctx.font='600 '+fs+'px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(v,x,y+0.5) };
+    for(const g of net.gears){
+      if(!g.alive||g.layer!==act) continue;
+      const ns=net.neighbors(g.id);
+      const Pg=project(g,Math.max(0,act-depthView));
+      // 相手が1つ（または孤立）なら中央に1つ。複数なら中央の周りに、相手の方向へ少しずらして並べる
+      if(ns.length<=1){
+        const v=ns.length?mod(net.target(g.id,ns[0])-g.count,g.teeth):mod(-g.count,g.teeth);
+        badge(Pg.x,Pg.y,v,v===0,9.5,12); continue;
+      }
+      for(const n of ns){ const B=net.gears[n], v=mod(net.target(g.id,n)-g.count,g.teeth);
+        const dx=B.x-g.x, dy=B.y-g.y, l=Math.hypot(dx,dy), d=10.5;
+        const x=Pg.x+dx/l*d, y=Pg.y+dy/l*d;
+        ctx.strokeStyle='rgba(207,169,79,.7)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+dx/l*6.5,y+dy/l*6.5); ctx.lineTo(x+dx/l*10,y+dy/l*10); ctx.stroke();
+        badge(x,y,v,v===0,6.5,9) }
+    }
+  }
+  // 孤立ギアの12時目盛り（操作中の層のみ）
+  for(const g of net.gears){
+    if(!g.alive||g.layer!==act||net.neighbors(g.id).length) continue;
+    const P=project(g,Math.max(0,g.layer-depthView)), y=P.y-g.outer*P.k-4;
+    ctx.fillStyle=g.aligned?'#ffe3a1':'#cfa94f';
+    ctx.beginPath(); ctx.moveTo(P.x-5,y-8); ctx.lineTo(P.x+5,y-8); ctx.lineTo(P.x,y); ctx.closePath(); ctx.fill();
+  }
+  // 噛み合い点の◆（操作中の層のみ）
+  for(const [a,b] of net.edges){
+    const A=net.gears[a], B=net.gears[b]; if(!A.alive||!B.alive||A.layer!==act) continue;
+    const rel=Math.max(0,act-depthView), PA=project(A,rel), PB=project(B,rel);
+    const f=(net.facing(a,b)?1:0)+(net.facing(b,a)?1:0), t=A.r/(A.r+B.r);
+    const x=PA.x+(PB.x-PA.x)*t, y=PA.y+(PB.y-PA.y)*t, s=f===2?5.5:4;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(Math.PI/4);
+    if(f===2){ ctx.shadowColor='rgba(255,215,120,.9)'; ctx.shadowBlur=14 }
+    ctx.fillStyle=f===2?'#ffe3a1':f===1?'#cfa94f':'#3a3f46'; ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=1;
+    ctx.fillRect(-s,-s,s*2,s*2); ctx.strokeRect(-s,-s,s*2,s*2); ctx.restore();
+  }
+  for(const g of net.gears) if(!g.alive&&g.fly) drawGear(g,0,st);
+  popups=popups.filter(p=>p.life>0);
+  for(const p of popups){
+    p.life-=dt*0.8; p.y-=dt*28;
+    ctx.save(); ctx.globalAlpha=Math.min(1,p.life*2); ctx.textAlign='center';
+    ctx.font=(p.big?'italic 600 22px ':'600 16px ')+'"Bodoni Moda", Didot, serif';
+    ctx.lineWidth=4; ctx.strokeStyle='rgba(14,16,19,.85)'; ctx.strokeText(p.text,p.x,p.y);
+    ctx.fillStyle=p.big?'#ffe3a1':'#ece6d6'; ctx.fillText(p.text,p.x,p.y); ctx.restore();
+  }
+  particles=particles.filter(p=>p.life>0);
+  for(const p of particles){
+    p.life-=dt*(p.ring?2.2:1.4);
+    if(p.screw){ p.vy+=900*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt;
+      ctx.save(); ctx.globalAlpha=Math.min(1,p.life); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+      ctx.fillStyle='#b9c4cc'; ctx.beginPath(); ctx.arc(0,0,p.s,0,TAU); ctx.fill();
+      ctx.strokeStyle='#3a4148'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(-p.s*.7,0); ctx.lineTo(p.s*.7,0); ctx.stroke(); ctx.restore(); continue }
+    if(p.ring){ p.r+=dt*160; ctx.strokeStyle='rgba(255,227,161,'+Math.max(0,p.life)*0.8+')'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,TAU); ctx.stroke(); continue }
+    p.vy+=380*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt;
+    ctx.save(); ctx.globalAlpha=Math.max(0,p.life); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.col; ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); ctx.restore();
+  }
+  if(flash>0){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.fillStyle='rgba(255,236,190,'+flash*0.5+')'; ctx.fillRect(0,0,W,view.H) }
+  requestAnimationFrame(frame);
+}
+let curPage='pageTitle', prevPage='pageTitle';
+function showPage(id){
+  if(id==='pageHowto'||id==='pageNotes'){ if(curPage==='pagePlay'||curPage==='pageTitle') prevPage=curPage }
+  ['pageTitle','pagePlay','pageHowto','pageNotes'].forEach(p=>$(p).hidden=p!==id);
+  curPage=id; window.scrollTo(0,0);
+  if(id==='pageTitle') refreshTitle();
+}
+$('goHowto').onclick=$('goHowto2').onclick=()=>showPage('pageHowto');
+$('goNotes').onclick=()=>showPage('pageNotes');
+$('goTitle').onclick=()=>{ if(!busy) showPage('pageTitle') };
+document.querySelectorAll('.back').forEach(b=>b.onclick=()=>showPage(prevPage));
+function savedStage(){ try{ return +localStorage.getItem('gearSynchroStage')||1 }catch(e){ return 1 } }
+function refreshTitle(){
+  const n=savedStage(); $('btnContinue').hidden=n<=1; $('contStage').textContent='STAGE '+n;
+  $('tBest').textContent=Math.max(best,total).toLocaleString();
+}
+function startAt(n){ audio(); total=0; showPage('pagePlay'); requestAnimationFrame(()=>loadStage(n)) }
+$('btnStart').onclick=()=>startAt(1);
+$('btnContinue').onclick=()=>startAt(savedStage());
+
+/* ---------- Title screen: 噛み合って回り続ける歯車。▲が向き合うたび金色に光る ---------- */
+const tcv=$('tcv'), tctx=tcv.getContext('2d');
+const TG=(()=>{
+  const A=new Gear(0,0,16,0,0), B=new Gear(1,0,8,0,0), C=new Gear(2,0,12,0,0), D=new Gear(3,1,16,0,0);
+  const at=(p,g,deg)=>{ const a=deg/180*Math.PI, d=p.r+g.r; g.x=p.x+Math.cos(a)*d; g.y=p.y+Math.sin(a)*d };
+  at(A,B,-35); at(B,C,-90+20); D.x=B.x; D.y=B.y;
+  const sg=new StageGenerator(1); sg.assignPhases([A,B,C],[[0,1],[1,2]]);
+  [A,B,C,D].forEach(buildPath);
+  const dir=(p,q)=>Math.atan2(q.y-p.y,q.x-p.x);
+  // B が C を向く瞬間を T=0 に。A は B が A を向く瞬間に合わせる
+  const cB=(dir(B,C)+Math.PI/2)/B.pitch, cC=(dir(C,B)+Math.PI/2)/C.pitch;
+  const Ts=cB-(dir(B,A)+Math.PI/2)/B.pitch, cA=(dir(A,B)+Math.PI/2)/A.pitch-Ts;
+  return {A,B,C,D,cA,cB,cC,edges:[[A,B],[B,C]],dir,sparks:[],glow:[0,0]};
+})();
+function titleFrame(now){
+  requestAnimationFrame(titleFrame);
+  if(curPage!=='pageTitle') return;
+  const dpr=Math.min(2,window.devicePixelRatio||1), W=tcv.clientWidth, H=tcv.clientHeight; if(!W) return;
+  if(tcv.width!==Math.round(W*dpr)){ tcv.width=Math.round(W*dpr); tcv.height=Math.round(H*dpr) }
+  const t=now/1000, T=t*3.2, {A,B,C,D}=TG;
+  A.vis=T; B.vis=-T; C.vis=T; D.vis=-T*B.teeth/D.teeth;
+  const mk={0:(T+TG.cA)*A.pitch,1:(-T+TG.cB)*B.pitch,2:(T+TG.cC)*C.pitch};
+  tctx.setTransform(dpr,0,0,dpr,0,0); tctx.clearRect(0,0,W,H);
+  drawClockFace(tctx,W/2,H*0.53,Math.min(W,H)*0.46,1.3);
+  const gs=[A,B,C], x0=Math.min(...gs.map(g=>g.x-g.outer)), x1=Math.max(...gs.map(g=>g.x+g.outer)), y0=Math.min(...gs.map(g=>g.y-g.outer)), y1=Math.max(...gs.map(g=>g.y+g.outer));
+  const s=Math.min(W*0.86/(x1-x0),H*0.84/(y1-y0)), ox=W/2-(x0+x1)/2*s, oy=H*0.53-(y0+y1)/2*s;
+  tctx.setTransform(dpr*s,0,0,dpr*s,dpr*ox,dpr*oy);
+  const near=(a,b)=>{ let d=mod(a-b+Math.PI,TAU)-Math.PI; return Math.abs(d)<0.09 };
+  TG.edges.forEach(([p,q],i)=>{ const f=near(mk[p.id]-Math.PI/2,TG.dir(p,q))&&near(mk[q.id]-Math.PI/2,TG.dir(q,p));
+    if(f&&TG.glow[i]<0.5){ const x=(p.x*q.r+q.x*p.r)/(p.r+q.r), y=(p.y*q.r+q.y*p.r)/(p.r+q.r);
+      for(let k=0;k<22;k++){ const a=Math.random()*TAU, v=40+Math.random()*120; TG.sparks.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1}) } }
+    TG.glow[i]=f?1:Math.max(0,TG.glow[i]-0.025) });
+  const drawT=(g,mark,glow,dim)=>{ const c=METALS[g.teeth];
+    tctx.save(); tctx.translate(g.x,g.y);
+    tctx.fillStyle='rgba(0,0,0,.4)'; tctx.beginPath(); tctx.arc(3,6,g.outer,0,TAU); tctx.fill();
+    if(glow>0){ tctx.shadowColor='rgba(255,215,120,'+glow+')'; tctx.shadowBlur=30*glow }
+    tctx.save(); tctx.rotate(g.phase+g.vis*g.pitch);
+    const gr=tctx.createRadialGradient(-g.r*.35,-g.r*.4,g.r*.1,0,0,g.outer); gr.addColorStop(0,c[0]); gr.addColorStop(.55,c[1]); gr.addColorStop(1,c[2]);
+    tctx.fillStyle=gr; tctx.fill(g.path,'evenodd'); tctx.shadowBlur=0; tctx.strokeStyle='rgba(0,0,0,.45)'; tctx.lineWidth=.8; tctx.stroke(g.path);
+    if(dim){ tctx.fillStyle='rgba(16,19,23,'+dim+')'; tctx.fill(g.path,'evenodd') }
+    tctx.restore(); tctx.shadowBlur=0;
+    if(mark!=null){ tctx.save(); tctx.rotate(mark); const my=-(g.r-MODULE*2), ms=MODULE*.95;
+      tctx.fillStyle=glow>0.3?'#ffe3a1':'#c8264a'; tctx.beginPath(); tctx.moveTo(0,my-ms*1.2); tctx.lineTo(ms,my+ms*.6); tctx.lineTo(-ms,my+ms*.6); tctx.closePath(); tctx.fill(); tctx.restore() }
+    const jr=MODULE*1.25, jg=tctx.createRadialGradient(-jr*.35,-jr*.35,1,0,0,jr); jg.addColorStop(0,'#ff9fb3'); jg.addColorStop(.5,'#c8264a'); jg.addColorStop(1,'#5a0c1d');
+    tctx.fillStyle='#2a2d31'; tctx.beginPath(); tctx.arc(0,0,jr+2.2,0,TAU); tctx.fill(); tctx.fillStyle=jg; tctx.beginPath(); tctx.arc(0,0,jr,0,TAU); tctx.fill();
+    tctx.restore() };
+  drawT(D,null,0,0.45);
+  drawT(A,mk[0],TG.glow[0]); drawT(C,mk[2],TG.glow[1]); drawT(B,mk[1],Math.max(TG.glow[0],TG.glow[1]));
+  TG.sparks=TG.sparks.filter(p=>p.l>0);
+  for(const p of TG.sparks){ p.l-=0.022; p.vy+=3; p.x+=p.vx/60; p.y+=p.vy/60;
+    tctx.globalAlpha=Math.max(0,p.l); tctx.fillStyle='#ffe3a1'; tctx.fillRect(p.x-1.2,p.y-1.2,2.4,2.4) }
+  tctx.globalAlpha=1;
+}
+requestAnimationFrame(titleFrame);
+document.querySelectorAll('.snd').forEach(b=>b.onclick=toggleSound); syncSound();
+refreshTitle();
+if(location.hash==='#howto') showPage('pageHowto'); else if(location.hash==='#notes') showPage('pageNotes');
+loadStage(1); requestAnimationFrame(frame);
+</script>
+
+</body>
+</html>
